@@ -25,7 +25,7 @@ function getRequiredString(value: string | string[] | undefined, fieldName: stri
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 200 * 1024 * 1024 }, // 200MB cap
+  limits: { fileSize: 45 * 1024 * 1024 }, // 45MB cap
   fileFilter: (req, file, cb) => {
     const allowed = ['audio/mpeg', 'audio/wav', 'audio/mp4', 'audio/x-m4a', 'audio/webm'];
     if (allowed.includes(file.mimetype)) {
