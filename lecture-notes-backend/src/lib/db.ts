@@ -29,3 +29,48 @@ export async function createCourse(userId: string, name: string) {
   if (error) throw error;
   return (data as Course) || null;
 }
+
+export async function getLecturesForCourse(courseId: string) {
+  const { data, error } = await (supabase()as any)
+    .from('lectures')
+    .select('*')
+    .eq('course_id', courseId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data;
+}
+
+export async function getLectureById(lectureId: string) {
+  const { data, error } = await (supabase()as any)
+    .from('lectures')
+    .select('*')
+    .eq('id', lectureId)
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function createLecture(courseId: string, title: string, audioUrl: string) {
+  const { data, error } = await (supabase()as any)
+    .from('lectures')
+    .insert({ course_id: courseId, title, audio_url: audioUrl, status: 'pending' })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function verifyCourseOwnership(courseId: string, userId: string) {
+  const { data, error } = await (supabase()as any)
+    .from('courses')
+    .select('id')
+    .eq('id', courseId)
+    .eq('user_id', userId)
+    .single();
+
+  if (error || !data) return false;
+  return true;
+}
