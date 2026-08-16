@@ -20,6 +20,7 @@ export async function uploadAudioFile(
   return storagePath;
 }
 
+
 export async function getSignedAudioUrl(path: string): Promise<string> {
   const { data, error } = await supabase()
     .storage.from('lecture-audio')
@@ -27,4 +28,15 @@ export async function getSignedAudioUrl(path: string): Promise<string> {
 
   if (error) throw error;
   return data.signedUrl;
+}
+
+export async function downloadAudioFile(path: string): Promise<Buffer> {
+  const { data, error } = await supabase()
+    .storage.from('lecture-audio')
+    .download(path);
+
+  if (error) throw error;
+
+  const arrayBuffer = await data.arrayBuffer();
+  return Buffer.from(arrayBuffer);
 }

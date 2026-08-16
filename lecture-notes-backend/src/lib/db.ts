@@ -74,3 +74,19 @@ export async function verifyCourseOwnership(courseId: string, userId: string) {
   if (error || !data) return false;
   return true;
 }
+
+export async function updateLectureStatus(
+  lectureId: string,
+  status: 'pending' | 'processing' | 'done' | 'failed',
+  transcriptText?: string
+) {
+  const updates: Record<string, unknown> = { status };
+  if (transcriptText !== undefined) updates.transcript_text = transcriptText;
+
+  const { error } = await (supabase()as any)
+    .from('lectures')
+    .update(updates)
+    .eq('id', lectureId);
+
+  if (error) throw error;
+}
