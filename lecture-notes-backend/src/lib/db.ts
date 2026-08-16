@@ -90,3 +90,16 @@ export async function updateLectureStatus(
 
   if (error) throw error;
 }
+
+export async function getStuckLectures(minutesThreshold: number) {
+  const cutoff = new Date(Date.now() - minutesThreshold * 60 * 1000).toISOString();
+
+  const { data, error } = await (supabase() as any)
+    .from('lectures')
+    .select('*')
+    .eq('status', 'processing')
+    .lt('created_at', cutoff);
+
+  if (error) throw error;
+  return data;
+}

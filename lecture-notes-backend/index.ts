@@ -9,6 +9,7 @@ import { requireAuth } from './middleware/auth.js';
 import type { AuthenticatedRequest } from './middleware/auth.js';
 import coursesRouter from './src/routes/courses.js';
 import lecturesRouter from './src/routes/lectures.js';
+import { recoverStuckLectures } from './src/lib/recoverStuckLectures.js';
 
 const app = express();
 app.use(cors());
@@ -26,3 +27,6 @@ app.get('/api/protected-test', requireAuth, (req: AuthenticatedRequest, res: Res
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+recoverStuckLectures(); // check on startup
+setInterval(recoverStuckLectures, 5 * 60 * 1000); // and every 5 minutes while running
