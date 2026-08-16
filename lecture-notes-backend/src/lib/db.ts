@@ -1,4 +1,5 @@
 import { supabase } from '../../middleware/supabaseClient.js';
+import type { GeneratedNotes } from './notesGeneration.js';
 
 interface Course {
   id: string;
@@ -99,6 +100,34 @@ export async function getStuckLectures(minutesThreshold: number) {
     .select('*')
     .eq('status', 'processing')
     .lt('created_at', cutoff);
+
+  if (error) throw error;
+  return data;
+}
+
+export async function saveNotes(lectureId: string, notes: GeneratedNotes) {
+  const { data, error } = await (supabase() as any)
+    .from('notes')
+    .insert({
+      lecture_id: lectureId,
+      concepts: notes.concepts,
+      definitions: notes.definitions,
+      formulas: notes.formulas,
+      emphasized_points: notes.emphasized_points,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function getNotesForLecture(lectureId: string) {
+  const { data, error } = await (supabase() as any)
+    .from('notes')
+    .select('*')
+    .eq('lecture_id', lectureId)
+    .maybeSingle(); // notes might not exist yet — don't throw if missing
 
   if (error) throw error;
   return data;
