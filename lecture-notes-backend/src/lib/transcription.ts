@@ -1,6 +1,17 @@
 import Groq from 'groq-sdk';
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! });
+let groq: Groq | null = null;
+
+function getGroqClient(): Groq {
+  if (!groq) {
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) {
+      throw new Error('GROQ_API_KEY environment variable is not set');
+    }
+    groq = new Groq({ apiKey });
+  }
+  return groq;
+}
 
 export async function transcribeAudio(
   audioBuffer: Buffer,
@@ -10,7 +21,7 @@ export async function transcribeAudio(
   // Use the global File constructor (available in Node.js 18+)
   const file = new (globalThis as any).File([audioBuffer], fileName);
 
-  const response = await groq.audio.transcriptions.create({
+  const response = await getGroqClient().audio.transcriptions.create({
     file: file as any,
     model: 'whisper-large-v3',
     response_format: 'text',
