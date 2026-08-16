@@ -10,6 +10,8 @@ import {
   verifyCourseOwnership,
 } from '../lib/db.js';
 import { uploadAudioFile, getSignedAudioUrl } from '../lib/storage.js';
+import { processLecture } from '../lib/processLecture.js';
+
 
 const router = Router();
 
@@ -92,17 +94,11 @@ router.post(
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       const courseId = getRequiredString(req.params.courseId, 'courseId');
-      const rawTitle = Array.isArray(req.body?.title) ? req.body.title[0] : req.body?.title;
-
-      if (!req.file) return res.status(400).json({ error: 'Audio file is required' });
-
-      const title = typeof rawTitle === 'string' ? rawTitle.trim() : '';
-      if (title.length === 0) {
-        return res.status(400).json({ error: 'Lecture title is required' });
+      const title = getRequiredString(req.body.title, 'title');
+      
+      if (!req.file) {
+        return res.status(400).json({ error: 'Audio file is required' });
       }
-
-      const owns = await verifyCourseOwnership(courseId, req.user!.id);
-      if (!owns) return res.status(403).json({ error: 'Not authorized for this course' });
 
       const storagePath = await uploadAudioFile(
         courseId,
@@ -110,11 +106,17 @@ router.post(
         req.file.buffer,
         req.file.mimetype
       );
-      const lecture = await createLecture(courseId, title, storagePath);
+      const lecture = await createLecture(courseId, title.trim(), storagePath);
+
+      // Fire-and-forget: don't await, let it run in the background
+      processLecture(lecture.id, storagePath, req.file.originalname).catch((err) =>
+        console.error('Background processing error:', err)
+      );
+
       res.status(201).json(lecture);
     } catch (err) {
       console.error(err);
-      res.status(400).json({ error: err instanceof Error ? err.message : 'Invalid request' });
+      res.status(500).json({ error: 'Failed to upload lecture' });
     }
   }
 );
