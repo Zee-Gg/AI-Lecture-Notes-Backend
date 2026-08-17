@@ -1,7 +1,18 @@
 import Groq from 'groq-sdk';
 import { buildNotesPrompt } from './prompts.js';
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! });
+let groq: Groq | null = null;
+
+function getGroqClient(): Groq {
+  if (!groq) {
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) {
+      throw new Error('GROQ_API_KEY environment variable is not set');
+    }
+    groq = new Groq({ apiKey });
+  }
+  return groq;
+}
 
 export type GeneratedNotes = {
   concepts: string[];
@@ -13,7 +24,7 @@ export type GeneratedNotes = {
 function extractJson(raw: string): string {
   // Strip markdown code fences if the model added them despite instructions
   const fenceMatch = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-  if (fenceMatch) return fenceMatch[1];
+  if (fenceMatch) return fenceMatch[1] ?? raw.trim();
   return raw.trim();
 }
 
@@ -27,7 +38,7 @@ function isValidNotesShape(obj: any): obj is GeneratedNotes {
 }
 
 async function callGroqForNotes(transcript: string): Promise<string> {
-  const completion = await groq.chat.completions.create({
+  const completion = await getGroqClient().chat.completions.create({
     model: 'llama-3.3-70b-versatile',
     messages: [{ role: 'user', content: buildNotesPrompt(transcript) }],
     temperature: 0.2, // low temperature — we want consistent structure, not creativity
