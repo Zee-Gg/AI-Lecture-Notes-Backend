@@ -1,33 +1,42 @@
 import Groq from 'groq-sdk';
+import { File } from 'node:buffer';
 
-let groq: Groq | null = null;
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! });
 
-function getGroqClient(): Groq {
-  if (!groq) {
-    const apiKey = process.env.GROQ_API_KEY;
-    if (!apiKey) {
-      throw new Error('GROQ_API_KEY environment variable is not set');
-    }
-    groq = new Groq({ apiKey });
-  }
-  return groq;
-}
+export type TranscriptSegment = {
+  text: string;
+  start: number;
+  end: number;
+};
+
+export type TranscriptionResult = {
+  fullText: string;
+  segments: TranscriptSegment[];
+};
 
 export async function transcribeAudio(
   audioBuffer: Buffer,
   fileName: string
-): Promise<string> {
-  // Groq's SDK expects a File-like object, not a raw Buffer
-  // Use the global File constructor (available in Node.js 18+)
+): Promise<TranscriptionResult> {
   const file = new (globalThis as any).File([audioBuffer], fileName);
 
-  const response = await getGroqClient().audio.transcriptions.create({
+
+
+  const response = await groq.audio.transcriptions.create({
     file: file as any,
     model: 'whisper-large-v3',
-    response_format: 'text',
-    // No 'language' param set deliberately — Whisper auto-detects,
-    // which handles code-switched Urdu-English better than forcing 'ur' or 'en'
+    response_format: 'verbose_json',
   });
 
-  return response as unknown as string;
+  const result = response as any;
+  const segments: TranscriptSegment[] = (result.segments || []).map((s: any) => ({
+    text: s.text.trim(),
+    start: s.start,
+    end: s.end,
+  }));
+
+  return {
+    fullText: result.text,
+    segments,
+  };
 }
