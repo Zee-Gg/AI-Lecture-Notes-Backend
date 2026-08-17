@@ -37,3 +37,5 @@ create table chunks (
   start_time float,
   end_time float
 );
+
+alter table chunks alter column embedding type vector(1024);
