@@ -132,3 +132,32 @@ export async function getNotesForLecture(lectureId: string) {
   if (error) throw error;
   return data;
 }
+
+export async function saveChunks(
+  lectureId: string,
+  courseId: string,
+  chunks: { content: string; embedding: number[]; startTime: number; endTime: number }[]
+) {
+  const rows = chunks.map((c) => ({
+    lecture_id: lectureId,
+    course_id: courseId,
+    content: c.content,
+    embedding: c.embedding,
+    start_time: c.startTime,
+    end_time: c.endTime,
+  }));
+
+  const { error } = await (supabase() as any)  
+  .from('chunks').insert(rows);
+  if (error) throw error;
+}
+
+export async function getChunkCountForLecture(lectureId: string) {
+  const { count, error } = await (supabase() as any)
+    .from('chunks')
+    .select('*', { count: 'exact', head: true })
+    .eq('lecture_id', lectureId);
+
+  if (error) throw error;
+  return count ?? 0;
+}
