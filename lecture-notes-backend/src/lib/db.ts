@@ -161,3 +161,45 @@ export async function getChunkCountForLecture(lectureId: string) {
   if (error) throw error;
   return count ?? 0;
 }
+
+export type MatchedChunk = {
+  id: string;
+  lecture_id: string;
+  content: string;
+  start_time: number;
+  end_time: number;
+  similarity: number;
+};
+
+export async function matchChunksForCourse(
+  courseId: string,
+  queryEmbedding: number[],
+  matchCount = 6
+): Promise<MatchedChunk[]> {
+  const { data, error } = await (supabase() as any)
+   .rpc('match_chunks', {
+    query_embedding: queryEmbedding,
+    match_course_id: courseId,
+    match_count: matchCount,
+  });
+
+  if (error) throw error;
+  return data as MatchedChunk[];
+}
+
+export async function getLectureTitlesByIds(lectureIds: string[]): Promise<Map<string, string>> {
+  if (lectureIds.length === 0) return new Map();
+
+  const { data, error } = await (supabase() as any)
+    .from('lectures')
+    .select('id, title')
+    .in('id', lectureIds);
+
+  if (error) throw error;
+
+  const map = new Map<string, string>();
+  for (const row of data) {
+    map.set(row.id, row.title);
+  }
+  return map;
+}
