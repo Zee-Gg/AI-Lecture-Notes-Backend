@@ -203,3 +203,23 @@ export async function getLectureTitlesByIds(lectureIds: string[]): Promise<Map<s
   }
   return map;
 }
+
+export async function deleteNotesForLecture(lectureId: string) {
+  const { error } = await supabase().from('notes').delete().eq('lecture_id', lectureId);
+  if (error) throw error;
+}
+
+export async function deleteChunksForLecture(lectureId: string) {
+  const { error } = await supabase().from('chunks').delete().eq('lecture_id', lectureId);
+  if (error) throw error;
+}
+
+export async function deleteLectureRow(lectureId: string) {
+  const { error } = await supabase().from('lectures').delete().eq('id', lectureId);
+  if (error) throw error;
+}
+
+export async function deleteCourseRow(courseId: string) {
+  const { error } = await supabase().from('courses').delete().eq('id', courseId);
+  if (error) throw error;
+}
