@@ -1,9 +1,17 @@
 import { CohereClient } from 'cohere-ai';
 
-const cohere = new CohereClient({ token: process.env.COHERE_API_KEY! });
+let cohereClient: CohereClient | null = null;
+
+function getCohereClient(): CohereClient {
+  if (!cohereClient) {
+    cohereClient = new CohereClient({ token: process.env.COHERE_API_KEY! });
+  }
+  return cohereClient;
+}
 
 export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
   if (texts.length === 0) return [];
+  const cohere = getCohereClient();
 
   const response = await cohere.embed({
     texts,
@@ -20,6 +28,8 @@ export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
 }
 
 export async function generateQueryEmbedding(query: string): Promise<number[]> {
+  const cohere = getCohereClient();
+
   const response = await cohere.embed({
     texts: [query],
     model: 'embed-multilingual-v3.0',

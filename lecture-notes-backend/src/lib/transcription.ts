@@ -1,7 +1,13 @@
 import Groq from 'groq-sdk';
-import { File } from 'node:buffer';
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! });
+let groqClient: Groq | null = null;
+
+function getGroqClient(): Groq {
+  if (!groqClient) {
+    groqClient = new Groq({ apiKey: process.env.GROQ_API_KEY! });
+  }
+  return groqClient;
+}
 
 export type TranscriptSegment = {
   text: string;
@@ -18,9 +24,8 @@ export async function transcribeAudio(
   audioBuffer: Buffer,
   fileName: string
 ): Promise<TranscriptionResult> {
+  const groq = getGroqClient();
   const file = new (globalThis as any).File([audioBuffer], fileName);
-
-
 
   const response = await groq.audio.transcriptions.create({
     file: file as any,
