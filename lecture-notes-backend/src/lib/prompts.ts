@@ -21,3 +21,38 @@ Transcript:
 ${transcript}
 """`;
 }
+
+type ContextChunk = {
+  lectureTitle: string;
+  startTime: number;
+  content: string;
+};
+
+function formatTimestamp(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+export function buildChatPrompt(question: string, contextChunks: ContextChunk[]): string {
+  const context = contextChunks
+    .map(
+      (c, i) =>
+        `[Source ${i + 1} — "${c.lectureTitle}" at ${formatTimestamp(c.startTime)}]\n${c.content}`
+    )
+    .join('\n\n');
+
+  return `You are a study assistant answering a student's question using only the lecture excerpts provided below. The lectures may mix English and Urdu.
+
+Rules:
+- Answer using ONLY the information in the excerpts. If the excerpts don't contain the answer, say so clearly — do not make up information.
+- When you use information from a source, cite it inline like [Source 1], [Source 2], etc., matching the numbers below.
+- Keep the answer clear and exam-focused, not overly long.
+
+Lecture excerpts:
+${context}
+
+Student's question: ${question}
+
+Answer:`;
+}
