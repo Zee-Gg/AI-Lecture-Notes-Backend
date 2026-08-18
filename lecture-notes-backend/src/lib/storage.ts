@@ -40,3 +40,8 @@ export async function downloadAudioFile(path: string): Promise<Buffer> {
   const arrayBuffer = await data.arrayBuffer();
   return Buffer.from(arrayBuffer);
 }
+
+export async function deleteAudioFile(path: string) {
+  const { error } = await supabase().storage.from('lecture-audio').remove([path]);
+  if (error) throw error;
+}
