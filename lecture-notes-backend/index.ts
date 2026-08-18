@@ -10,6 +10,7 @@ import coursesRouter from './src/routes/courses.js';
 import lecturesRouter from './src/routes/lectures.js';
 import { recoverStuckLectures } from './src/lib/recoverStuckLectures.js';
 import notesRouter from './src/routes/notes.js';
+import chatRouter from './src/routes/chat.js';
 
 const app = express();
 app.use(cors());
@@ -17,6 +18,7 @@ app.use(express.json());
 app.use('/api/courses', coursesRouter);
 app.use('/api/lectures', lecturesRouter);
 app.use('/api/notes', notesRouter);
+app.use('/api/chat', chatRouter);
 
 app.get('/api/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', message: 'Backend is alive' });
