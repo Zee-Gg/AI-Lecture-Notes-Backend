@@ -39,3 +39,31 @@ create table chunks (
 );
 
 alter table chunks alter column embedding type vector(1024);
+
+create or replace function match_chunks(
+  query_embedding vector(1024),
+  match_course_id uuid,
+  match_count int default 6
+)
+returns table (
+  id uuid,
+  lecture_id uuid,
+  content text,
+  start_time float,
+  end_time float,
+  similarity float
+)
+language sql stable
+as $$
+  select
+    chunks.id,
+    chunks.lecture_id,
+    chunks.content,
+    chunks.start_time,
+    chunks.end_time,
+    1 - (chunks.embedding <=> query_embedding) as similarity
+  from chunks
+  where chunks.course_id = match_course_id
+  order by chunks.embedding <=> query_embedding
+  limit match_count;
+$$;
