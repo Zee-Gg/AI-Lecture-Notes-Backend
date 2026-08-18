@@ -1,5 +1,6 @@
 import Groq from 'groq-sdk';
 import { buildNotesPrompt } from './prompts.js';
+import { GROQ_CHAT_MODEL } from './modelConfig.js';
 
 let groq: Groq | null = null;
 
@@ -39,7 +40,7 @@ function isValidNotesShape(obj: any): obj is GeneratedNotes {
 
 async function callGroqForNotes(transcript: string): Promise<string> {
   const completion = await getGroqClient().chat.completions.create({
-    model: 'openai/gpt-oss-120b',
+    model: GROQ_CHAT_MODEL,
     messages: [{ role: 'user', content: buildNotesPrompt(transcript) }],
     temperature: 0.2, // low temperature — we want consistent structure, not creativity
   });

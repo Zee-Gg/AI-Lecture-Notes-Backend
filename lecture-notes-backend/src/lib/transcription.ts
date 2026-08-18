@@ -1,4 +1,5 @@
 import Groq from 'groq-sdk';
+import { GROQ_WHISPER_MODEL } from './modelConfig.js';
 
 let groqClient: Groq | null = null;
 
@@ -29,7 +30,7 @@ export async function transcribeAudio(
 
   const response = await groq.audio.transcriptions.create({
     file: file as any,
-    model: 'whisper-large-v3',
+    model: GROQ_WHISPER_MODEL,
     response_format: 'verbose_json',
   });
 
