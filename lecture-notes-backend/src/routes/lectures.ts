@@ -11,6 +11,7 @@ import {
 } from "../lib/db.js";
 import { uploadAudioFile, getSignedAudioUrl } from "../lib/storage.js";
 import { processLecture } from "../lib/processLecture.js";
+import { deleteLectureCascade } from '../lib/deleteCascade.js';
 
 const router = Router();
 
@@ -197,4 +198,24 @@ router.post(
     }
   }
 );
+
+
+router.delete('/:id', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  const lectureId = getRequiredString(req.params.id, "lectureId");
+  if (!lectureId) return res.status(400).json({ error: 'Lecture ID is required' });
+
+  try {
+    const lecture = await getLectureById(lectureId);
+    if (!lecture) return res.status(404).json({ error: 'Lecture not found' });
+
+    const owns = await verifyCourseOwnership(lecture.course_id, req.user!.id);
+    if (!owns) return res.status(403).json({ error: 'Not authorized' });
+
+    await deleteLectureCascade(lectureId);
+    res.status(204).send();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to delete lecture' });
+  }
+});
 export default router;
