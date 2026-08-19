@@ -22,15 +22,15 @@ export type TranscriptionResult = {
   segments: TranscriptSegment[];
 };
 
-async function transcribeSingleFile(filePath: string): Promise<any> {
+async function translateSingleFile(filePath: string): Promise<any> {
   const groq = getGroqClient();
   const fileStream = fs.createReadStream(filePath);
 
-  const response = await groq.audio.transcriptions.create({
+  // translations.create() converts any spoken language directly to English text
+  const response = await groq.audio.translations.create({
     file: fileStream as any,
     model: GROQ_WHISPER_MODEL,
     response_format: 'verbose_json',
-    language: 'ur',
   });
 
   return response as any;
@@ -47,11 +47,11 @@ export async function transcribeAudio(
     const allText: string[] = [];
 
     for (const segment of segments) {
-      const result = await transcribeSingleFile(segment.filePath);
+      const result = await translateSingleFile(segment.filePath);
 
       const segmentTexts: TranscriptSegment[] = (result.segments || []).map((s: any) => ({
         text: s.text.trim(),
-        start: s.start + segment.offsetSeconds, // shift timestamps to the full-lecture timeline
+        start: s.start + segment.offsetSeconds,
         end: s.end + segment.offsetSeconds,
       }));
 
