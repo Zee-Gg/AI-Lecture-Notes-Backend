@@ -8,8 +8,11 @@ import {
   getLectureById,
   createLecture,
   verifyCourseOwnership,
-  updateLectureTitle
+  updateLectureTitle,
+  deleteNotesForLecture, deleteChunksForLecture , updateLectureStatus
 } from "../lib/db.js";
+
+
 import { uploadAudioFile, getSignedAudioUrl } from "../lib/storage.js";
 import { processLecture } from "../lib/processLecture.js";
 import { deleteLectureCascade } from '../lib/deleteCascade.js';
@@ -239,6 +242,42 @@ router.patch('/:id', requireAuth, async (req: AuthenticatedRequest, res: Respons
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: 'Failed to update lecture title' });
+  }
+});
+
+router.post('/:id/retry', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  const lectureId = req.params.id as string;
+
+  try {
+    const lecture = await getLectureById(lectureId);
+    if (!lecture) return res.status(404).json({ error: 'Lecture not found' });
+
+    const owns = await verifyCourseOwnership(lecture.course_id, req.user!.id);
+    if (!owns) return res.status(403).json({ error: 'Not authorized' });
+
+    if (lecture.status !== 'failed') {
+      return res.status(400).json({ error: 'Only failed lectures can be retried' });
+    }
+
+    if (!lecture.audio_url) {
+      return res.status(400).json({ error: 'No audio file found for this lecture' });
+    }
+
+    // Clean up any partial notes/chunks from the failed attempt before retrying,
+    // so we don't end up with duplicate or stale data alongside the new attempt
+    await deleteNotesForLecture(lectureId);
+    await deleteChunksForLecture(lectureId);
+
+    await updateLectureStatus(lectureId, 'pending');
+
+    processLecture(lectureId, lecture.course_id, lecture.audio_url, lecture.title).catch((err) =>
+      console.error('Retry processing error:', err)
+    );
+
+    res.status(202).json({ message: 'Retry started' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to retry lecture' });
   }
 });
 export default router;
