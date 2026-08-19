@@ -30,6 +30,7 @@ async function transcribeSingleFile(filePath: string): Promise<any> {
     file: fileStream as any,
     model: GROQ_WHISPER_MODEL,
     response_format: 'verbose_json',
+    language: 'ur',
   });
 
   return response as any;
