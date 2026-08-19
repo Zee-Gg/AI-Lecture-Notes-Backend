@@ -79,12 +79,14 @@ export async function verifyCourseOwnership(courseId: string, userId: string) {
 export async function updateLectureStatus(
   lectureId: string,
   status: 'pending' | 'processing' | 'done' | 'failed',
-  transcriptText?: string
+  transcriptText?: string,
+  transcriptSegments?: { text: string; start: number; end: number }[]
 ) {
   const updates: Record<string, unknown> = { status };
   if (transcriptText !== undefined) updates.transcript_text = transcriptText;
+  if (transcriptSegments !== undefined) updates.transcript_segments = transcriptSegments;
 
-  const { error } = await (supabase()as any)
+  const { error } = await (supabase() as any)
     .from('lectures')
     .update(updates)
     .eq('id', lectureId);

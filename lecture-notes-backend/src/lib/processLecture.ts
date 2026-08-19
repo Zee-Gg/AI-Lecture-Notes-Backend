@@ -43,7 +43,7 @@ if (rawChunks.length > 0) {
 
   await saveChunks(lectureId, courseId, chunksWithEmbeddings);
 }
-    await updateLectureStatus(lectureId, 'done', fullText);
+    await updateLectureStatus(lectureId, 'done', fullText, segments);
 
     console.log(`Lecture ${lectureId} fully processed: transcript, notes, and ${rawChunks.length} chunks`);
   } catch (err) {
