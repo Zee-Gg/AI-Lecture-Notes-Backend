@@ -225,3 +225,27 @@ export async function deleteCourseRow(courseId: string) {
   const { error } = await supabase().from('courses').delete().eq('id', courseId);
   if (error) throw error;
 }
+
+export async function updateCourseName(courseId: string, name: string) {
+  const { data, error } = await (supabase()as any)
+    .from('courses')
+    .update({ name })
+    .eq('id', courseId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function updateLectureTitle(lectureId: string, title: string) {
+  const { data, error } = await (supabase()as any)
+    .from('lectures')
+    .update({ title })
+    .eq('id', lectureId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
