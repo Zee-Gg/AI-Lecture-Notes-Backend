@@ -67,3 +67,5 @@ as $$
   order by chunks.embedding <=> query_embedding
   limit match_count;
 $$;
+
+alter table lectures add column transcript_segments jsonb;
