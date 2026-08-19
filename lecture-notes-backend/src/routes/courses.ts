@@ -2,7 +2,7 @@ import { Router } from 'express';
 import type { Response } from 'express';
 import { requireAuth } from '../../middleware/auth.js';
 import type { AuthenticatedRequest } from '../../middleware/auth.js';
-import { getCoursesForUser, createCourse } from '../lib/db.js';
+import { getCoursesForUser, createCourse , updateCourseName } from '../lib/db.js';
 import { deleteCourseCascade } from '../lib/deleteCascade.js';
 import { verifyCourseOwnership } from '../lib/db.js';
 
@@ -46,6 +46,25 @@ router.delete('/:id', requireAuth, async (req: AuthenticatedRequest, res: Respon
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to delete course' });
+  }
+});
+
+router.patch('/:id', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  const courseId = req.params.id as string;
+  const { name } = req.body;
+
+  if (!name || typeof name !== 'string' || name.trim().length === 0) {
+    return res.status(400).json({ error: 'Course name is required' });
+  }
+
+  const owns = await verifyCourseOwnership(courseId, req.user!.id);
+  if (!owns) return res.status(403).json({ error: 'Not authorized' });
+
+  try {
+    const updated = await updateCourseName(courseId, name.trim());
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update course name' });
   }
 });
 

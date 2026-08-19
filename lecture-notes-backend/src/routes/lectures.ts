@@ -8,6 +8,7 @@ import {
   getLectureById,
   createLecture,
   verifyCourseOwnership,
+  updateLectureTitle
 } from "../lib/db.js";
 import { uploadAudioFile, getSignedAudioUrl } from "../lib/storage.js";
 import { processLecture } from "../lib/processLecture.js";
@@ -216,6 +217,28 @@ router.delete('/:id', requireAuth, async (req: AuthenticatedRequest, res: Respon
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to delete lecture' });
+  }
+});
+
+router.patch('/:id', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  const lectureId = req.params.id as string;
+  const { title } = req.body;
+
+  if (!title || typeof title !== 'string' || title.trim().length === 0) {
+    return res.status(400).json({ error: 'Lecture title is required' });
+  }
+
+  try {
+    const lecture = await getLectureById(lectureId);
+    if (!lecture) return res.status(404).json({ error: 'Lecture not found' });
+
+    const owns = await verifyCourseOwnership(lecture.course_id, req.user!.id);
+    if (!owns) return res.status(403).json({ error: 'Not authorized' });
+
+    const updated = await updateLectureTitle(lectureId, title.trim());
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update lecture title' });
   }
 });
 export default router;
