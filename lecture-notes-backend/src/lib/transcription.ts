@@ -22,16 +22,40 @@ export type TranscriptionResult = {
   segments: TranscriptSegment[];
 };
 
+const TRANSCRIPTION_CONCURRENCY = 3;
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T, index: number) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let nextIndex = 0;
+
+  async function worker(): Promise<void> {
+    while (nextIndex < items.length) {
+      const index = nextIndex++;
+      results[index] = await fn(items[index]!, index);
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
+}
+
 async function translateSingleFile(filePath: string): Promise<any> {
   const groq = getGroqClient();
   const fileStream = fs.createReadStream(filePath);
 
   // translations.create() converts any spoken language directly to English text
-  const response = await groq.audio.translations.create({
-    file: fileStream as any,
-    model: GROQ_WHISPER_MODEL,
-    response_format: 'verbose_json',
-  });
+  const response = await groq.audio.translations.create(
+    {
+      file: fileStream as any,
+      model: GROQ_WHISPER_MODEL,
+      response_format: 'verbose_json',
+    },
+    { timeout: 60_000 }
+  );
 
   return response as any;
 }
@@ -43,25 +67,23 @@ export async function transcribeAudio(
   const segments = await splitAudioIntoChunks(audioBuffer, fileName);
 
   try {
-    const allSegments: TranscriptSegment[] = [];
-    const allText: string[] = [];
-
-    for (const segment of segments) {
-      const result = await translateSingleFile(segment.filePath);
-
-      const segmentTexts: TranscriptSegment[] = (result.segments || []).map((s: any) => ({
-        text: s.text.trim(),
-        start: s.start + segment.offsetSeconds,
-        end: s.end + segment.offsetSeconds,
-      }));
-
-      allSegments.push(...segmentTexts);
-      allText.push(result.text);
-    }
+    const results = await mapWithConcurrency(
+      segments,
+      TRANSCRIPTION_CONCURRENCY,
+      async (segment) => {
+        const result = await translateSingleFile(segment.filePath);
+        const segmentTexts: TranscriptSegment[] = (result.segments || []).map((s: any) => ({
+          text: s.text.trim(),
+          start: s.start + segment.offsetSeconds,
+          end: s.end + segment.offsetSeconds,
+        }));
+        return { segmentTexts, text: result.text as string };
+      }
+    );
 
     return {
-      fullText: allText.join(' '),
-      segments: allSegments,
+      fullText: results.map((r) => r.text).join(' '),
+      segments: results.flatMap((r) => r.segmentTexts),
     };
   } finally {
     await cleanupAudioSegments(segments);
