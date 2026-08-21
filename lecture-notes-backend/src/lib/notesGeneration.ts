@@ -39,11 +39,14 @@ function isValidNotesShape(obj: any): obj is GeneratedNotes {
 }
 
 async function callGroqForNotes(transcript: string): Promise<string> {
-  const completion = await getGroqClient().chat.completions.create({
-    model: GROQ_CHAT_MODEL,
-    messages: [{ role: 'user', content: buildNotesPrompt(transcript) }],
-    temperature: 0.2, // low temperature — we want consistent structure, not creativity
-  });
+  const completion = await getGroqClient().chat.completions.create(
+    {
+      model: GROQ_CHAT_MODEL,
+      messages: [{ role: 'user', content: buildNotesPrompt(transcript) }],
+      temperature: 0.2, // low temperature — we want consistent structure, not creativity
+    },
+    { timeout: 30_000 }
+  );
 
   return completion.choices[0]?.message?.content || '';
 }
