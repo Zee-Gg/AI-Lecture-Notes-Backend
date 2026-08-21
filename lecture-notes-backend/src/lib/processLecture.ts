@@ -19,30 +19,36 @@ export async function processLecture(
     const audioBuffer = await downloadAudioFile(storagePath);
     const { fullText, segments } = await transcribeAudio(audioBuffer, fileName);
 
-    // Structured notes generation
-    const notes = await generateStructuredNotes(fullText);
-    await saveNotes(lectureId, notes);
+    // Notes generation and chunk embedding both only depend on the transcript,
+    // so run them concurrently instead of one after the other.
+    const rawChunks = chunkTranscript(segments);
 
-    // Chunking + embedding for cross-lecture retrieval
-   const rawChunks = chunkTranscript(segments);
-if (rawChunks.length > 0) {
-  const embeddings = await generateEmbeddings(rawChunks.map((c) => c.content));
+    const notesPromise = generateStructuredNotes(fullText).then((notes) =>
+      saveNotes(lectureId, notes)
+    );
 
-  const chunksWithEmbeddings = rawChunks
-    .map((c, i) => {
-      const embedding = embeddings[i];
-      if (!embedding) return null;
-      return {
-        content: c.content,
-        embedding,
-        startTime: c.startTime,
-        endTime: c.endTime,
-      };
-    })
-    .filter((c): c is NonNullable<typeof c> => c !== null);
+    const chunksPromise =
+      rawChunks.length > 0
+        ? generateEmbeddings(rawChunks.map((c) => c.content)).then((embeddings) => {
+            const chunksWithEmbeddings = rawChunks
+              .map((c, i) => {
+                const embedding = embeddings[i];
+                if (!embedding) return null;
+                return {
+                  content: c.content,
+                  embedding,
+                  startTime: c.startTime,
+                  endTime: c.endTime,
+                };
+              })
+              .filter((c): c is NonNullable<typeof c> => c !== null);
 
-  await saveChunks(lectureId, courseId, chunksWithEmbeddings);
-}
+            return saveChunks(lectureId, courseId, chunksWithEmbeddings);
+          })
+        : Promise.resolve();
+
+    await Promise.all([notesPromise, chunksPromise]);
+
     await updateLectureStatus(lectureId, 'done', fullText, segments);
 
     console.log(`Lecture ${lectureId} fully processed: transcript, notes, and ${rawChunks.length} chunks`);
