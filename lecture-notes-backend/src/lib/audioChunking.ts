@@ -71,7 +71,13 @@ export async function splitAudioIntoChunks(
   const inputPath = path.join(tempDir, originalFileName);
   await fs.writeFile(inputPath, audioBuffer);
 
-  // Step 1: always compress first — this alone fixes most oversized files
+  // Step 0: file's already small enough — send as-is, skip transcoding entirely
+  const inputStat = await fs.stat(inputPath);
+  if (inputStat.size <= MAX_SEGMENT_BYTES) {
+    return [{ filePath: inputPath, offsetSeconds: 0 }];
+  }
+
+  // Step 1: too large — compress, which fixes most oversized files
   const compressedPath = path.join(tempDir, 'compressed.mp3');
   await compressAudio(inputPath, compressedPath);
 
