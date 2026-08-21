@@ -13,11 +13,14 @@ export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
   if (texts.length === 0) return [];
   const cohere = getCohereClient();
 
-  const response = await cohere.embed({
-    texts,
-    model: 'embed-multilingual-v3.0',
-    inputType: 'search_document',
-  });
+  const response = await cohere.embed(
+    {
+      texts,
+      model: 'embed-multilingual-v3.0',
+      inputType: 'search_document',
+    },
+    { timeoutInSeconds: 30 }
+  );
 
   const embeddings = response.embeddings as number[][];
   if (!embeddings || embeddings.length !== texts.length) {
@@ -30,11 +33,14 @@ export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
 export async function generateQueryEmbedding(query: string): Promise<number[]> {
   const cohere = getCohereClient();
 
-  const response = await cohere.embed({
-    texts: [query],
-    model: 'embed-multilingual-v3.0',
-    inputType: 'search_query',
-  });
+  const response = await cohere.embed(
+    {
+      texts: [query],
+      model: 'embed-multilingual-v3.0',
+      inputType: 'search_query',
+    },
+    { timeoutInSeconds: 30 }
+  );
 
   const embeddings = response.embeddings as number[][];
   const first = embeddings?.[0];
